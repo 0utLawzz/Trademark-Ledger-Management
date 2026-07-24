@@ -3,20 +3,40 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Trademark Ledger & Case Management System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: clients
+    description: Client management
+  - name: cases
+    description: Trademark case management
+  - name: stages
+    description: Case stage management
+  - name: assignments
+    description: Stage 2 assignments
+  - name: ledger
+    description: Ledger entry management
+  - name: reports
+    description: Reports and analytics
+  - name: import-export
+    description: Bulk import and export
+  - name: search
+    description: Global search
+  - name: audit
+    description: Audit log
+  - name: dashboard
+    description: Dashboard stats
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +44,1150 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── CLIENTS ──────────────────────────────────────────────────────────────
+  /clients:
+    get:
+      operationId: listClients
+      tags: [clients]
+      summary: List / search clients
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: List of clients
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Client" }
+                  total: { type: integer }
+    post:
+      operationId: createClient
+      tags: [clients]
+      summary: Create a client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClientInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Client" }
+
+  /clients/{id}:
+    get:
+      operationId: getClient
+      tags: [clients]
+      summary: Get a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Client
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Client" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    patch:
+      operationId: updateClient
+      tags: [clients]
+      summary: Update a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClientUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Client" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    delete:
+      operationId: deleteClient
+      tags: [clients]
+      summary: Delete a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeletedResponse" }
+
+  /clients/{id}/cases:
+    get:
+      operationId: getClientCases
+      tags: [clients]
+      summary: Get all cases for a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Cases for the client
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TrademarkCase" }
+
+  /clients/{id}/ledger:
+    get:
+      operationId: getClientLedger
+      tags: [clients]
+      summary: Get consolidated ledger for a client (all cases)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Consolidated ledger
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [entries, totalDue, totalReceived, balance]
+                properties:
+                  entries:
+                    type: array
+                    items: { $ref: "#/components/schemas/LedgerEntry" }
+                  totalDue: { type: number }
+                  totalReceived: { type: number }
+                  balance: { type: number }
+
+  # ── TRADEMARK CASES ──────────────────────────────────────────────────────
+  /cases:
+    get:
+      operationId: listCases
+      tags: [cases]
+      summary: List / search trademark cases
+      parameters:
+        - name: folderNumber
+          in: query
+          schema: { type: string }
+        - name: tmNumber
+          in: query
+          schema: { type: string }
+        - name: clientNumber
+          in: query
+          schema: { type: string }
+        - name: applicantName
+          in: query
+          schema: { type: string }
+        - name: class
+          in: query
+          schema: { type: string }
+        - name: stage
+          in: query
+          schema: { type: integer }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: List of cases
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/TrademarkCase" }
+                  total: { type: integer }
+    post:
+      operationId: createCase
+      tags: [cases]
+      summary: Create a trademark case
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CaseInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TrademarkCase" }
+
+  /cases/{folderId}:
+    get:
+      operationId: getCase
+      tags: [cases]
+      summary: Get a case by folder number
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Case detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TrademarkCaseDetail" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    patch:
+      operationId: updateCase
+      tags: [cases]
+      summary: Update a trademark case
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CaseUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TrademarkCase" }
+    delete:
+      operationId: deleteCase
+      tags: [cases]
+      summary: Delete a trademark case
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeletedResponse" }
+
+  # ── STAGES ───────────────────────────────────────────────────────────────
+  /cases/{folderId}/stages:
+    get:
+      operationId: listCaseStages
+      tags: [stages]
+      summary: Get all stages for a case
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: All stages for the case
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CaseStage" }
+
+  /cases/{folderId}/stages/{stageNumber}:
+    get:
+      operationId: getCaseStage
+      tags: [stages]
+      summary: Get a specific stage
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: stageNumber
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Stage detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CaseStage" }
+    patch:
+      operationId: updateCaseStage
+      tags: [stages]
+      summary: Update a stage (status, sub-status, timeline, etc.)
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: stageNumber
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StageUpdate" }
+      responses:
+        "200":
+          description: Updated stage
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CaseStage" }
+
+  # ── STAGE 2 ASSIGNMENTS ──────────────────────────────────────────────────
+  /cases/{folderId}/assignments:
+    get:
+      operationId: listAssignments
+      tags: [assignments]
+      summary: List all Stage 2 assignments for a case
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Assignment" }
+    post:
+      operationId: createAssignment
+      tags: [assignments]
+      summary: Assign a person to Stage 2
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssignmentInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Assignment" }
+
+  /cases/{folderId}/assignments/{assignmentId}:
+    patch:
+      operationId: updateAssignment
+      tags: [assignments]
+      summary: Update an assignment (accept date, status, etc.)
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: assignmentId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssignmentUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Assignment" }
+    delete:
+      operationId: deleteAssignment
+      tags: [assignments]
+      summary: Delete an assignment
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: assignmentId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeletedResponse" }
+
+  # ── CASE LEDGER ──────────────────────────────────────────────────────────
+  /cases/{folderId}/ledger:
+    get:
+      operationId: getCaseLedger
+      tags: [ledger]
+      summary: Get ledger entries for a case
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Ledger with summary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [entries, totalDue, totalReceived, balance]
+                properties:
+                  entries:
+                    type: array
+                    items: { $ref: "#/components/schemas/LedgerEntry" }
+                  totalDue: { type: number }
+                  totalReceived: { type: number }
+                  balance: { type: number }
+    post:
+      operationId: createLedgerEntry
+      tags: [ledger]
+      summary: Add a ledger entry to a case
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LedgerEntryInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LedgerEntry" }
+
+  /ledger/{entryId}:
+    patch:
+      operationId: updateLedgerEntry
+      tags: [ledger]
+      summary: Update a ledger entry
+      parameters:
+        - name: entryId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LedgerEntryUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LedgerEntry" }
+    delete:
+      operationId: deleteLedgerEntry
+      tags: [ledger]
+      summary: Delete a ledger entry
+      parameters:
+        - name: entryId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeletedResponse" }
+
+  # ── REPORTS ──────────────────────────────────────────────────────────────
+  /reports/client-ledger:
+    get:
+      operationId: reportClientLedger
+      tags: [reports]
+      summary: Client ledger report data
+      parameters:
+        - name: clientId
+          in: query
+          required: true
+          schema: { type: integer }
+        - name: startDate
+          in: query
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Client ledger report
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientLedgerReport" }
+
+  /reports/case-ledger:
+    get:
+      operationId: reportCaseLedger
+      tags: [reports]
+      summary: Case ledger report data
+      parameters:
+        - name: folderId
+          in: query
+          required: true
+          schema: { type: string }
+        - name: startDate
+          in: query
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Case ledger report
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CaseLedgerReport" }
+
+  /reports/outstanding:
+    get:
+      operationId: reportOutstanding
+      tags: [reports]
+      summary: Outstanding balances report
+      parameters:
+        - name: clientId
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Outstanding report
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/OutstandingReportRow" }
+
+  /reports/daily-collection:
+    get:
+      operationId: reportDailyCollection
+      tags: [reports]
+      summary: Daily collection report
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Daily collection
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [date, entries, totalReceived]
+                properties:
+                  date: { type: string }
+                  entries:
+                    type: array
+                    items: { $ref: "#/components/schemas/LedgerEntry" }
+                  totalReceived: { type: number }
+
+  /reports/monthly-collection:
+    get:
+      operationId: reportMonthlyCollection
+      tags: [reports]
+      summary: Monthly collection report
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema: { type: integer }
+        - name: month
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Monthly collection
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [year, month, entries, totalReceived, totalDue]
+                properties:
+                  year: { type: integer }
+                  month: { type: integer }
+                  entries:
+                    type: array
+                    items: { $ref: "#/components/schemas/LedgerEntry" }
+                  totalReceived: { type: number }
+                  totalDue: { type: number }
+
+  /reports/stage:
+    get:
+      operationId: reportStage
+      tags: [reports]
+      summary: Stage-wise case report
+      parameters:
+        - name: stage
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Stage report
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/StageReportRow" }
+
+  # ── IMPORT / EXPORT ───────────────────────────────────────────────────────
+  /import/cases:
+    post:
+      operationId: importCases
+      tags: [import-export]
+      summary: Bulk import trademark cases from Excel data (JSON rows)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BulkImportInput" }
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportResult" }
+
+  /export/cases:
+    get:
+      operationId: exportCases
+      tags: [import-export]
+      summary: Export cases as JSON for Excel generation
+      parameters:
+        - name: clientId
+          in: query
+          schema: { type: integer }
+        - name: stage
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Cases export data
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TrademarkCase" }
+
+  /export/ledger:
+    get:
+      operationId: exportLedger
+      tags: [import-export]
+      summary: Export ledger entries as JSON for Excel generation
+      parameters:
+        - name: clientId
+          in: query
+          schema: { type: integer }
+        - name: folderId
+          in: query
+          schema: { type: string }
+        - name: startDate
+          in: query
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Ledger export data
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/LedgerEntry" }
+
+  # ── SEARCH ────────────────────────────────────────────────────────────────
+  /search:
+    get:
+      operationId: globalSearch
+      tags: [search]
+      summary: Global search across clients and cases
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchResults" }
+
+  # ── AUDIT LOG ─────────────────────────────────────────────────────────────
+  /audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [audit]
+      summary: List audit log entries
+      parameters:
+        - name: tableName
+          in: query
+          schema: { type: string }
+        - name: operation
+          in: query
+          schema:
+            type: string
+            enum: [CREATE, UPDATE, DELETE]
+        - name: recordId
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        "200":
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/AuditLog" }
+                  total: { type: integer }
+
+  # ── DASHBOARD ─────────────────────────────────────────────────────────────
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Dashboard summary statistics
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DashboardStats" }
+
+# ── COMPONENTS ─────────────────────────────────────────────────────────────
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
-        status:
-          type: string
-      required:
-        - status
+        status: { type: string }
 
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+
+    DeletedResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+
+    # ── CLIENT ──────────────────────────────────────────────────────────────
+    Client:
+      type: object
+      required: [id, clientNumber, name, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        clientNumber: { type: string }
+        name: { type: string }
+        address: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    ClientInput:
+      type: object
+      required: [clientNumber, name]
+      properties:
+        clientNumber: { type: string }
+        name: { type: string }
+        address: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        notes: { type: string }
+
+    ClientUpdate:
+      type: object
+      properties:
+        clientNumber: { type: string }
+        name: { type: string }
+        address: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        notes: { type: string }
+
+    # ── TRADEMARK CASE ───────────────────────────────────────────────────────
+    TrademarkCase:
+      type: object
+      required: [id, folderNumber, clientId, applicantName, stage, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        folderNumber: { type: string }
+        clientId: { type: integer }
+        clientNumber: { type: ["string", "null"] }
+        clientName: { type: ["string", "null"] }
+        tmNumber: { type: ["string", "null"] }
+        applicantName: { type: string }
+        class: { type: ["string", "null"] }
+        filingDate: { type: ["string", "null"] }
+        stage: { type: integer }
+        subStage: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    TrademarkCaseDetail:
+      type: object
+      required: [id, folderNumber, clientId, applicantName, stage, stages, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        folderNumber: { type: string }
+        clientId: { type: integer }
+        clientNumber: { type: ["string", "null"] }
+        clientName: { type: ["string", "null"] }
+        tmNumber: { type: ["string", "null"] }
+        applicantName: { type: string }
+        class: { type: ["string", "null"] }
+        filingDate: { type: ["string", "null"] }
+        stage: { type: integer }
+        subStage: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        stages:
+          type: array
+          items: { $ref: "#/components/schemas/CaseStage" }
+        assignments:
+          type: array
+          items: { $ref: "#/components/schemas/Assignment" }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    CaseInput:
+      type: object
+      required: [folderNumber, clientId, applicantName]
+      properties:
+        folderNumber: { type: string }
+        clientId: { type: integer }
+        tmNumber: { type: string }
+        applicantName: { type: string }
+        class: { type: string }
+        filingDate: { type: string }
+        stage: { type: integer, default: 1 }
+        subStage: { type: string }
+        notes: { type: string }
+
+    CaseUpdate:
+      type: object
+      properties:
+        tmNumber: { type: string }
+        applicantName: { type: string }
+        class: { type: string }
+        filingDate: { type: string }
+        stage: { type: integer }
+        subStage: { type: string }
+        notes: { type: string }
+
+    # ── STAGE ────────────────────────────────────────────────────────────────
+    StageTimelineEvent:
+      type: object
+      required: [date, description]
+      properties:
+        date: { type: string }
+        description: { type: string }
+
+    StageHistoryEntry:
+      type: object
+      required: [changedAt, field, oldValue, newValue]
+      properties:
+        changedAt: { type: string }
+        field: { type: string }
+        oldValue: { type: ["string", "null"] }
+        newValue: { type: ["string", "null"] }
+
+    CaseStage:
+      type: object
+      required: [id, caseId, stageNumber, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        caseId: { type: integer }
+        stageNumber: { type: integer }
+        status: { type: ["string", "null"] }
+        subStatus: { type: ["string", "null"] }
+        timeline:
+          type: array
+          items: { $ref: "#/components/schemas/StageTimelineEvent" }
+        history:
+          type: array
+          items: { $ref: "#/components/schemas/StageHistoryEntry" }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    StageUpdate:
+      type: object
+      properties:
+        status: { type: string }
+        subStatus: { type: string }
+        timelineEvent:
+          $ref: "#/components/schemas/StageTimelineEvent"
+
+    # ── ASSIGNMENT ───────────────────────────────────────────────────────────
+    Assignment:
+      type: object
+      required: [id, caseId, personName, assignedDate, status, createdAt]
+      properties:
+        id: { type: integer }
+        caseId: { type: integer }
+        personName: { type: string }
+        city: { type: ["string", "null"] }
+        assignedDate: { type: string }
+        acceptedDate: { type: ["string", "null"] }
+        status: { type: string }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    AssignmentInput:
+      type: object
+      required: [personName, assignedDate]
+      properties:
+        personName: { type: string }
+        city: { type: string }
+        assignedDate: { type: string }
+        status: { type: string, default: "Pending" }
+
+    AssignmentUpdate:
+      type: object
+      properties:
+        personName: { type: string }
+        city: { type: string }
+        assignedDate: { type: string }
+        acceptedDate: { type: string }
+        status: { type: string }
+
+    # ── LEDGER ───────────────────────────────────────────────────────────────
+    LedgerEntry:
+      type: object
+      required: [id, caseId, date, folderNumber, detail, dueAmount, receivedAmount, runningBalance, createdAt]
+      properties:
+        id: { type: integer }
+        caseId: { type: integer }
+        date: { type: string }
+        folderNumber: { type: string }
+        tmNumber: { type: ["string", "null"] }
+        stage: { type: ["integer", "null"] }
+        detail: { type: string }
+        dueAmount: { type: number }
+        receivedAmount: { type: number }
+        runningBalance: { type: number }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    LedgerEntryInput:
+      type: object
+      required: [date, detail]
+      properties:
+        date: { type: string }
+        tmNumber: { type: string }
+        stage: { type: integer }
+        detail: { type: string }
+        dueAmount: { type: number, default: 0 }
+        receivedAmount: { type: number, default: 0 }
+
+    LedgerEntryUpdate:
+      type: object
+      properties:
+        date: { type: string }
+        tmNumber: { type: string }
+        stage: { type: integer }
+        detail: { type: string }
+        dueAmount: { type: number }
+        receivedAmount: { type: number }
+
+    # ── REPORTS ──────────────────────────────────────────────────────────────
+    ClientLedgerReport:
+      type: object
+      required: [client, entries, totalDue, totalReceived, balance]
+      properties:
+        client: { $ref: "#/components/schemas/Client" }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/LedgerEntry" }
+        totalDue: { type: number }
+        totalReceived: { type: number }
+        balance: { type: number }
+
+    CaseLedgerReport:
+      type: object
+      required: [case, entries, totalDue, totalReceived, balance]
+      properties:
+        case: { $ref: "#/components/schemas/TrademarkCase" }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/LedgerEntry" }
+        totalDue: { type: number }
+        totalReceived: { type: number }
+        balance: { type: number }
+
+    OutstandingReportRow:
+      type: object
+      required: [clientId, clientName, clientNumber, totalDue, totalReceived, balance]
+      properties:
+        clientId: { type: integer }
+        clientName: { type: string }
+        clientNumber: { type: string }
+        folderNumber: { type: ["string", "null"] }
+        tmNumber: { type: ["string", "null"] }
+        totalDue: { type: number }
+        totalReceived: { type: number }
+        balance: { type: number }
+
+    StageReportRow:
+      type: object
+      required: [stage, count, cases]
+      properties:
+        stage: { type: integer }
+        count: { type: integer }
+        cases:
+          type: array
+          items: { $ref: "#/components/schemas/TrademarkCase" }
+
+    # ── IMPORT ───────────────────────────────────────────────────────────────
+    BulkImportInput:
+      type: object
+      required: [rows]
+      properties:
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              folderNumber: { type: string }
+              clientNumber: { type: string }
+              tmNumber: { type: string }
+              applicantName: { type: string }
+              class: { type: string }
+              filingDate: { type: string }
+              stage: { type: integer }
+              subStage: { type: string }
+              notes: { type: string }
+
+    ImportResult:
+      type: object
+      required: [imported, skipped, errors]
+      properties:
+        imported: { type: integer }
+        skipped: { type: integer }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              row: { type: integer }
+              error: { type: string }
+
+    # ── SEARCH ───────────────────────────────────────────────────────────────
+    SearchResults:
+      type: object
+      required: [clients, cases]
+      properties:
+        clients:
+          type: array
+          items: { $ref: "#/components/schemas/Client" }
+        cases:
+          type: array
+          items: { $ref: "#/components/schemas/TrademarkCase" }
+
+    # ── AUDIT ────────────────────────────────────────────────────────────────
+    AuditLog:
+      type: object
+      required: [id, tableName, operation, recordId, createdAt]
+      properties:
+        id: { type: integer }
+        tableName: { type: string }
+        operation: { type: string }
+        recordId: { type: string }
+        changes: { type: ["string", "null"] }
+        performedBy: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    # ── DASHBOARD ────────────────────────────────────────────────────────────
+    DashboardStats:
+      type: object
+      required: [totalClients, totalCases, casesByStage, recentCases, totalOutstanding, monthlyCollection]
+      properties:
+        totalClients: { type: integer }
+        totalCases: { type: integer }
+        casesByStage:
+          type: array
+          items:
+            type: object
+            required: [stage, count]
+            properties:
+              stage: { type: integer }
+              count: { type: integer }
+        recentCases:
+          type: array
+          items: { $ref: "#/components/schemas/TrademarkCase" }
+        totalOutstanding: { type: number }
+        monthlyCollection: { type: number }
